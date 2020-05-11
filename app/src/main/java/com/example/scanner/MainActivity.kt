@@ -87,7 +87,6 @@ class MainActivity : AppCompatActivity() {
     private var wifiManager: WifiManager? = null
     private var scan_time = 0L
     private var current_location = mLocation()
-    var timer: Timer = Timer()
 
     // Initialize the broadcast receiver
     val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {

@@ -15,6 +15,7 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
+import android.telephony.*
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -27,10 +28,16 @@ import kotlin.collections.ArrayList
 class CSVResults() {
     private var BTArray: MutableList<String>
     private var WifiArray: MutableList<String>
+    private var CellArray: MutableList<String>
 
     init {
         BTArray = ArrayList()
         WifiArray = ArrayList()
+        CellArray = ArrayList()
+    }
+
+    fun add_cell(element: String) {
+        CellArray.add(element)
     }
 
     fun add_bt(element: String) {
@@ -55,6 +62,12 @@ class CSVResults() {
         for (w in WifiArray) {
             println(w)
             fileWriter.write("WIFI,$w\n")
+        }
+
+        // and all cell-towers
+        for (c in CellArray) {
+            println(c)
+            fileWriter.write("CELL,$c\n")
         }
 
         fileWriter.flush()
@@ -85,6 +98,7 @@ class MainActivity : AppCompatActivity() {
     private var locationManager : LocationManager? = null
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var wifiManager: WifiManager? = null
+    private var telephonyManager: TelephonyManager? = null
     private var scan_time = 0L
     private var current_location = mLocation()
 
@@ -130,6 +144,9 @@ class MainActivity : AppCompatActivity() {
 
         getPermissions()
 
+        // Create telephony manager reference
+        telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
         // Create persistent LocationManager reference
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager?
         //locationManager?.registerGnssStatusCallback(gnss_callbacks)
@@ -168,7 +185,8 @@ class MainActivity : AppCompatActivity() {
         var console = findViewById(R.id.textView) as TextView
         var prevres = console.text as String
         for (r in results) {
-            result_db.add_wifi("${current_location.print()},$scan_time,${r.SSID},${r.BSSID},${r.level},${r.frequency},${r.channelWidth},${r.capabilities}")
+            result_db.add_wifi("""${current_location.print()},$scan_time,${r.SSID},${r.BSSID},
+                |${r.level},${r.frequency},${r.channelWidth},${r.capabilities}""".trimMargin())
             prevres += "${r.SSID} ${r.BSSID} ${r.frequency} ${r.level} dBm\n"
         }
         //console.setText(prevres)
@@ -180,7 +198,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun perform_scan() {
         scan_time = System.currentTimeMillis() / 1000
-
+        get_cell_updates()
         start_bt_scan()
         start_wifi_scan()
     }
@@ -263,6 +281,32 @@ class MainActivity : AppCompatActivity() {
 
         override fun onProviderDisabled(provider: String?) {
             setText("Provider off!")
+        }
+    }
+
+    fun get_cell_updates() {
+        val cells = telephonyManager?.getAllCellInfo() as List<CellInfo>
+        for (cell in cells) {
+            if (cell is CellInfoLte) {
+                val cell_id = cell.cellIdentity
+                println("Got a LTE cell")
+                println(cell.toString())
+                result_db.add_bt("""${current_location.print()},$scan_time,${cell_id.getOperatorAlphaLong()},
+                    ${cell_id.getPci()}_${cell_id.getEarfcn()},${cell.cellSignalStrength.rsrp},${cell.isRegistered()}""".trimMargin())
+            }
+            else if (cell is CellInfoGsm) {
+                println("Got a GSM cell")
+            }
+            else if (cell is CellInfoWcdma) {
+                println("Got a WCDMA cell")
+            }
+            else if (cell is CellInfoCdma) {
+                println("Got a CDMA cell")
+            }
+            // TDSCDMA is implemented first from API 29 on (left out)
+
+
+
         }
     }
 

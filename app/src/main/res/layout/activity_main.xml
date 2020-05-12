@@ -13,6 +13,12 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="275dp"
+            app:srcCompat="@drawable/flag" />
+
         <Button
             android:id="@+id/buttonStart"
             android:layout_width="match_parent"

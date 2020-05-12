@@ -206,8 +206,7 @@ class MainActivity : AppCompatActivity() {
         var console = findViewById(R.id.textView) as TextView
         var prevres = console.text as String
         for (r in results) {
-            result_db.add_wifi("""${current_location.print()},$scan_time,${r.SSID},${r.BSSID},
-                |${r.level},${r.frequency},${r.channelWidth},${r.capabilities}""".trimMargin())
+            result_db.add_wifi("${current_location.print()},$scan_time,${r.SSID},${r.BSSID},${r.level},${r.frequency},${r.channelWidth},${r.capabilities}")
             prevres += "${r.SSID} ${r.BSSID} ${r.frequency} ${r.level} dBm\n"
         }
     }
@@ -311,8 +310,7 @@ class MainActivity : AppCompatActivity() {
                 val cell_id = cell.cellIdentity
                 println("Got a LTE cell")
                 println(cell.toString())
-                result_db.add_bt("""${current_location.print()},$scan_time,${cell_id.getOperatorAlphaLong()},
-                    ${cell_id.getPci()}_${cell_id.getEarfcn()},${cell.cellSignalStrength.rsrp},${cell.isRegistered()}""".trimMargin())
+                result_db.add_cell("${current_location.print()},$scan_time,${cell_id.getOperatorAlphaLong()},${cell_id.getPci()}_${cell_id.getEarfcn()},${cell.cellSignalStrength.rsrp},${cell.isRegistered()}")
             }
             else if (cell is CellInfoGsm) {
                 println("Got a GSM cell")

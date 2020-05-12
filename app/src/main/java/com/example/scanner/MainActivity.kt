@@ -208,7 +208,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun getPermissions() {
         // Get permission from user
-        requestPermissions(arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE), 0)
+        requestPermissions(arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION,
+            WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE), 0)
     }
 
     private val gnss_callbacks: GnssStatus.Callback = object : GnssStatus.Callback() {

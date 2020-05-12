@@ -53,15 +53,7 @@
             android:id="@+id/buttonStore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Store file" />
-
-        <EditText
-            android:id="@+id/filenameText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Filename" />
+            android:text="Dump database" />
 
         <TextView
             android:id="@+id/textView"

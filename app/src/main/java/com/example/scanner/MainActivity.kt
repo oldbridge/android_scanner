@@ -23,75 +23,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 import java.io.FileWriter
-import kotlin.collections.ArrayList
-
-class CSVResults() {
-    private var BTArray: MutableList<String>
-    private var WifiArray: MutableList<String>
-    private var CellArray: MutableList<String>
-
-    init {
-        BTArray = ArrayList()
-        WifiArray = ArrayList()
-        CellArray = ArrayList()
-    }
-
-    fun add_cell(element: String) {
-        CellArray.add(element)
-    }
-
-    fun add_bt(element: String) {
-        BTArray.add(element)
-    }
-
-    fun add_wifi(element: String) {
-        WifiArray.add(element)
-    }
-
-    fun write_to_csv(file: File) {
-        println(file)
-        var fileWriter = FileWriter(file, true)
-
-        // Write all BT ...
-        for (bt in BTArray) {
-            println(bt)
-            fileWriter.write("BT,$bt\n")
-        }
-
-        // and all Wifi ...
-        for (w in WifiArray) {
-            println(w)
-            fileWriter.write("WIFI,$w\n")
-        }
-
-        // and all cell-towers
-        for (c in CellArray) {
-            println(c)
-            fileWriter.write("CELL,$c\n")
-        }
-
-        fileWriter.flush()
-        fileWriter.close()
-    }
-}
-
-var result_db = CSVResults()
-
-class mLocation() {
-    private var lat = 0.0
-    private var long = 0.0
-    private var height = 0.0
-
-    fun print(): String {
-        return "$lat,$long,$height"
-    }
-
-    fun set_location(mlat: Double, mlong: Double, mHeight: Double) {
-        lat = mlat
-        long = mlong
-        height = mHeight
-    }
-}
 
 class MainActivity : AppCompatActivity() {
     // inside a basic activity
@@ -100,9 +31,11 @@ class MainActivity : AppCompatActivity() {
     private var wifiManager: WifiManager? = null
     private var telephonyManager: TelephonyManager? = null
     private var scan_time = 0L
-    private var current_location = mLocation()
+    private var current_location = Location("dummyprovider")
     private var stop: Boolean = false
     private var scan_delay: Long = 4000
+    private var db: DeviceDatabase? =null
+    private var storage_path: String? =null
 
     // Initialize the broadcast receiver
     val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -122,7 +55,8 @@ class MainActivity : AppCompatActivity() {
                 val device_rssi =
                     intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, 0)
                 // add the name and the MAC address of the object to the arrayAdapter
-                result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
+                //result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
+                db?.addBTDevice(Device(device.name, scan_time, current_location, device.address, device_rssi.toInt()))
             }
         }
     }
@@ -146,6 +80,11 @@ class MainActivity : AppCompatActivity() {
 
         getPermissions()
 
+        // Setup db
+        db = DeviceDatabase(this, null, getExternalFilesDir(null).toString())
+
+        //val name = save_data()
+
         // Create telephony manager reference
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
@@ -154,9 +93,8 @@ class MainActivity : AppCompatActivity() {
         //locationManager?.registerGnssStatusCallback(gnss_callbacks)
         start_positioning()
 
-        // Set filename to current time
+        // Save start_time
         val start_time = System.currentTimeMillis() / 1000
-        findViewById<EditText>(R.id.filenameText).setText("log_" + start_time.toString() + ".csv")
 
         // Get the default adapter
         init_bt()
@@ -186,6 +124,7 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
+
     private fun stop_scan() {
         stop = true
     }
@@ -206,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         var console = findViewById(R.id.textView) as TextView
         var prevres = console.text as String
         for (r in results) {
-            result_db.add_wifi("${current_location.print()},$scan_time,${r.SSID},${r.BSSID},${r.level},${r.frequency},${r.channelWidth},${r.capabilities}")
+            db?.addWifiDevice(WifiDevice(r.SSID, scan_time, current_location, r.BSSID, r.level, r.frequency, r.channelWidth, r.capabilities))
             prevres += "${r.SSID} ${r.BSSID} ${r.frequency} ${r.level} dBm\n"
         }
     }
@@ -224,16 +163,70 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun get_log_file(): File {
+        println()
         return File(getExternalFilesDir(null), get_log_filename())
     }
 
     private fun get_log_filename(): String {
-        return findViewById<EditText>(R.id.filenameText).getText().toString()
+        return "dump.csv"
+        //return findViewById<EditText>(R.id.filenameText).getText().toString()
     }
 
     private fun save_results() {
-        val f = get_log_file()
-        result_db.write_to_csv(f)
+        var fileWriter = FileWriter(get_log_file(), false)
+        // Write headers
+        fileWriter.write("type,timestamp,latitude,longitude,altitude,name,address,power,linked,frequency_wifi,channel_width_wifi,capabilities_wifi\n")
+        var write_string = ""
+        val cursor = db?.getAllData()
+
+        cursor!!.moveToFirst()
+        while (!cursor.isAfterLast()) {
+            var location = Location("dummyprovider")
+            location.setLatitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_LAT)))
+            location.setLongitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_LONG)))
+            location.setAltitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_HEIGHT)))
+            if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_BT) {
+                // Is BT Device
+                val device = Device(
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
+                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
+                    location,
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER))
+                )
+                write_string = device.toCsv()
+            }
+            else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_WIFI) {
+                // Is WIFI Device
+                val device = WifiDevice(
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
+                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
+                    location,
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_FREQUENCY)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_CHANNEL_WIDTH)),
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_CAPABILITIES))
+                )
+                write_string = device.toCsv()
+            }
+            else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_CELL) {
+                val device = CellDevice(
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
+                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
+                    location,
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER)),
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_INUSE))
+                )
+                write_string = device.toCsv()
+            }
+
+            fileWriter.write(write_string+"\n")
+            cursor.moveToNext()
+        }
+        fileWriter.flush()
+        fileWriter.close()
     }
 
     private fun start_bt_scan() {
@@ -292,11 +285,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onLocationChanged(location: Location?) {
-            current_location.set_location(
-                location!!.getLatitude(),
-                location.getLongitude(),
-                location.getAltitude()
-            )
+            current_location = location as Location
+
             setText("New location: ${location.getLatitude()} ${location.getLongitude()}")
         }
 
@@ -320,7 +310,11 @@ class MainActivity : AppCompatActivity() {
                 val cell_id = cell.cellIdentity
                 println("Got a LTE cell")
                 println(cell.toString())
-                result_db.add_cell("${current_location.print()},$scan_time,${cell_id.getOperatorAlphaLong()},${cell_id.getPci()}_${cell_id.getEarfcn()},${cell.cellSignalStrength.rsrp},${cell.isRegistered()}")
+                db?.addCellDevice(CellDevice(
+                    cell_id.operatorAlphaLong.toString(),
+                    scan_time, current_location, "${cell_id.getPci()}_${cell_id.getEarfcn()}",
+                    cell.cellSignalStrength.rsrp, (if (cell.isRegistered()) 1 else 0))
+                )
             } else if (cell is CellInfoGsm) {
                 println("Got a GSM cell")
             } else if (cell is CellInfoWcdma) {

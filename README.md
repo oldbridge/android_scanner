@@ -9,7 +9,7 @@ Currently supports the scanning of the following devices:
 
 The data is stored in a csv file for post-processing.
 
-A pos processing example is provided together with the code.
+A post-processing example is provided together with the code.
 
 The collection of personal data is illegal in most countries, be sure to check your local regulations.  
 This software is provided as is an without any legal liabilities.

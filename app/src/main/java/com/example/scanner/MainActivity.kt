@@ -109,9 +109,6 @@ class MainActivity : AppCompatActivity() {
                 //setText("${device.name} ${device.address} $device_rssi dBm")
                 result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
             }
-            else if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION == action) {
-                setText("WiFi scan results!")
-            }
         }
     }
 
@@ -203,7 +200,6 @@ class MainActivity : AppCompatActivity() {
     private fun start_bt_scan() {
         bluetoothAdapter.startDiscovery()
         registerReceiver(bReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
-        registerReceiver(bReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
     }
 
     private fun getPermissions() {

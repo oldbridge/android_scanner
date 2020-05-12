@@ -17,10 +17,16 @@
             android:id="@+id/buttonStart"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Perform scan" />
+            android:text="Start Scan" />
 
         <Button
             android:id="@+id/buttonStop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stop Scan" />
+
+        <Button
+            android:id="@+id/buttonStore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Store file" />
@@ -62,5 +68,6 @@
             </ScrollView>
 
         </LinearLayout>
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

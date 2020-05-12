@@ -22,7 +22,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 import java.io.FileWriter
-import java.util.*
 import kotlin.collections.ArrayList
 
 class CSVResults() {
@@ -101,6 +100,8 @@ class MainActivity : AppCompatActivity() {
     private var telephonyManager: TelephonyManager? = null
     private var scan_time = 0L
     private var current_location = mLocation()
+    private var stop: Boolean = false
+    private var scan_delay: Long = 5000
 
     // Initialize the broadcast receiver
     val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -134,7 +135,8 @@ class MainActivity : AppCompatActivity() {
             // Repeat this the same runnable code block again another 2 seconds
             // 'this' is referencing the Runnable object
             perform_scan()
-            handler.postDelayed(this, 15000)
+            if (!stop) handler.postDelayed(this, scan_delay)
+            else stop = false
         }
     }
 
@@ -162,11 +164,15 @@ class MainActivity : AppCompatActivity() {
         // Setup click listeners
         //findViewById<Button>(R.id.buttonStart).setOnClickListener{clickButtonStart()}
         findViewById<Button>(R.id.buttonStart).setOnClickListener{start_scan()}
-        //findViewById<Button>(R.id.buttonStop).setOnClickListener{clickButtonStop()}
-        findViewById<Button>(R.id.buttonStop).setOnClickListener{save_results()}
+        findViewById<Button>(R.id.buttonStop).setOnClickListener{stop_scan()}
+        findViewById<Button>(R.id.buttonStore).setOnClickListener{save_results()}
 
         // Schedule periodic scans
 
+    }
+
+    private fun stop_scan() {
+        stop = true
     }
 
     private fun init_bt() {
@@ -193,6 +199,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun start_scan() {
+        stop = false
         handler.post(periodicScans)
     }
 

@@ -82,7 +82,7 @@ class mLocation() {
     private var long = 0.0
     private var height = 0.0
 
-    fun print() : String {
+    fun print(): String {
         return "$lat,$long,$height"
     }
 
@@ -95,7 +95,7 @@ class mLocation() {
 
 class MainActivity : AppCompatActivity() {
     // inside a basic activity
-    private var locationManager : LocationManager? = null
+    private var locationManager: LocationManager? = null
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var wifiManager: WifiManager? = null
     private var telephonyManager: TelephonyManager? = null
@@ -163,16 +163,16 @@ class MainActivity : AppCompatActivity() {
         init_wifi()
 
         // Setup click listeners
-        findViewById<Button>(R.id.buttonStart).setOnClickListener{start_scan()}
-        findViewById<Button>(R.id.buttonStop).setOnClickListener{stop_scan()}
-        findViewById<Button>(R.id.buttonStore).setOnClickListener{save_results()}
+        findViewById<Button>(R.id.buttonStart).setOnClickListener { start_scan() }
+        findViewById<Button>(R.id.buttonStop).setOnClickListener { stop_scan() }
+        findViewById<Button>(R.id.buttonStore).setOnClickListener { save_results() }
         findViewById<SeekBar>(R.id.scanfrequencyBar).setOnSeekBarChangeListener(rate_changed)
 
         // Setup scan rate indicators
         findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(scan_delay.toInt() / 1000)
     }
 
-    var rate_changed : SeekBar.OnSeekBarChangeListener = object:SeekBar.OnSeekBarChangeListener {
+    var rate_changed: SeekBar.OnSeekBarChangeListener = object : SeekBar.OnSeekBarChangeListener {
         override fun onProgressChanged(seekBar: SeekBar, progress: Int, b: Boolean) {
             scan_delay = progress.toLong() * 1000
             findViewById<TextView>(R.id.scanfreq).setText(progress.toString() + " s")
@@ -202,7 +202,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun start_wifi_scan() {
-        val results  = wifiManager?.getScanResults() as List<ScanResult>
+        val results = wifiManager?.getScanResults() as List<ScanResult>
         var console = findViewById(R.id.textView) as TextView
         var prevres = console.text as String
         for (r in results) {
@@ -226,6 +226,7 @@ class MainActivity : AppCompatActivity() {
     private fun get_log_file(): File {
         return File(getExternalFilesDir(null), get_log_filename())
     }
+
     private fun get_log_filename(): String {
         return findViewById<EditText>(R.id.filenameText).getText().toString()
     }
@@ -242,8 +243,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun getPermissions() {
         // Get permission from user
-        requestPermissions(arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION,
-            WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE), 0)
+        requestPermissions(
+            arrayOf(
+                ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION,
+                WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE
+            ), 0
+        )
     }
 
     private val gnss_callbacks: GnssStatus.Callback = object : GnssStatus.Callback() {
@@ -252,6 +257,7 @@ class MainActivity : AppCompatActivity() {
             show_text += value + "\n"
             findViewById<TextView>(R.id.textViewGNSS).setText(show_text)
         }
+
         override fun onFirstFix(ttffMillis: Int) {
             super.onFirstFix(ttffMillis)
             setText("Took $ttffMillis milliseconds to fix!")
@@ -271,8 +277,7 @@ class MainActivity : AppCompatActivity() {
                     value += "${status.getSvid(i)} [${status.getCn0DbHz(i)}], "
                 }
                 setText(value)
-            }
-            else {
+            } else {
                 setText("No sat on track!")
             }
 
@@ -285,8 +290,13 @@ class MainActivity : AppCompatActivity() {
         private fun setText(value: String) {
             findViewById<TextView>(R.id.textView).setText(value)
         }
+
         override fun onLocationChanged(location: Location?) {
-            current_location.set_location(location!!.getLatitude(), location.getLongitude(), location.getAltitude())
+            current_location.set_location(
+                location!!.getLatitude(),
+                location.getLongitude(),
+                location.getAltitude()
+            )
             setText("New location: ${location.getLatitude()} ${location.getLongitude()}")
         }
 
@@ -311,14 +321,11 @@ class MainActivity : AppCompatActivity() {
                 println("Got a LTE cell")
                 println(cell.toString())
                 result_db.add_cell("${current_location.print()},$scan_time,${cell_id.getOperatorAlphaLong()},${cell_id.getPci()}_${cell_id.getEarfcn()},${cell.cellSignalStrength.rsrp},${cell.isRegistered()}")
-            }
-            else if (cell is CellInfoGsm) {
+            } else if (cell is CellInfoGsm) {
                 println("Got a GSM cell")
-            }
-            else if (cell is CellInfoWcdma) {
+            } else if (cell is CellInfoWcdma) {
                 println("Got a WCDMA cell")
-            }
-            else if (cell is CellInfoCdma) {
+            } else if (cell is CellInfoCdma) {
                 println("Got a CDMA cell")
             }
             // TDSCDMA is implemented first from API 29 on (left out)
@@ -326,8 +333,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun start_positioning() {
-        locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, locationListener)
+        locationManager?.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER,
+            0L,
+            0f,
+            locationListener
+        )
     }
+
     fun clickButtonStop() {
         locationManager?.removeUpdates(locationListener)
     }

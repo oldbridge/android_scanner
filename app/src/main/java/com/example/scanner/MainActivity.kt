@@ -121,7 +121,6 @@ class MainActivity : AppCompatActivity() {
                 val device_rssi =
                     intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, 0)
                 // add the name and the MAC address of the object to the arrayAdapter
-                //setText("${device.name} ${device.address} $device_rssi dBm")
                 result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
             }
         }
@@ -157,17 +156,15 @@ class MainActivity : AppCompatActivity() {
         // Set filename to current time
         val start_time = System.currentTimeMillis() / 1000
         findViewById<EditText>(R.id.filenameText).setText("log_" + start_time.toString() + ".csv")
+
         // Get the default adapter
         init_bt()
         init_wifi()
 
         // Setup click listeners
-        //findViewById<Button>(R.id.buttonStart).setOnClickListener{clickButtonStart()}
         findViewById<Button>(R.id.buttonStart).setOnClickListener{start_scan()}
         findViewById<Button>(R.id.buttonStop).setOnClickListener{stop_scan()}
         findViewById<Button>(R.id.buttonStore).setOnClickListener{save_results()}
-
-        // Schedule periodic scans
 
     }
 
@@ -195,7 +192,6 @@ class MainActivity : AppCompatActivity() {
                 |${r.level},${r.frequency},${r.channelWidth},${r.capabilities}""".trimMargin())
             prevres += "${r.SSID} ${r.BSSID} ${r.frequency} ${r.level} dBm\n"
         }
-        //console.setText(prevres)
     }
 
     private fun start_scan() {
@@ -266,7 +262,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    //
     // Implement locationListener callbacks
     private val locationListener: LocationListener = object : LocationListener {
 
@@ -274,8 +269,8 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.textView).setText(value)
         }
         override fun onLocationChanged(location: Location?) {
-            current_location.set_location(location!!.getLatitude(), location!!.getLongitude(), location!!.getAltitude())
-            setText("New location: ${location?.latitude} ${location?.longitude}")
+            current_location.set_location(location!!.getLatitude(), location.getLongitude(), location.getAltitude())
+            setText("New location: ${location.getLatitude()} ${location.getLongitude()}")
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
@@ -311,9 +306,6 @@ class MainActivity : AppCompatActivity() {
                 println("Got a CDMA cell")
             }
             // TDSCDMA is implemented first from API 29 on (left out)
-
-
-
         }
     }
 

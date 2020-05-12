@@ -18,6 +18,7 @@ import android.os.Handler
 import android.telephony.*
 import android.widget.Button
 import android.widget.EditText
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
@@ -101,7 +102,7 @@ class MainActivity : AppCompatActivity() {
     private var scan_time = 0L
     private var current_location = mLocation()
     private var stop: Boolean = false
-    private var scan_delay: Long = 5000
+    private var scan_delay: Long = 4000
 
     // Initialize the broadcast receiver
     val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -165,9 +166,26 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.buttonStart).setOnClickListener{start_scan()}
         findViewById<Button>(R.id.buttonStop).setOnClickListener{stop_scan()}
         findViewById<Button>(R.id.buttonStore).setOnClickListener{save_results()}
+        findViewById<SeekBar>(R.id.scanfrequencyBar).setOnSeekBarChangeListener(rate_changed)
 
+        // Setup scan rate indicators
+        findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(scan_delay.toInt() / 1000)
     }
 
+    var rate_changed : SeekBar.OnSeekBarChangeListener = object:SeekBar.OnSeekBarChangeListener {
+        override fun onProgressChanged(seekBar: SeekBar, progress: Int, b: Boolean) {
+            scan_delay = progress.toLong() * 1000
+            findViewById<TextView>(R.id.scanfreq).setText(progress.toString() + " s")
+        }
+
+        override fun onStartTrackingTouch(seekBar: SeekBar?) {
+
+        }
+
+        override fun onStopTrackingTouch(seekBar: SeekBar?) {
+
+        }
+    }
     private fun stop_scan() {
         stop = true
     }

@@ -7,13 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.location.Location
 
-open class Device(name: String, timestamp: Long, position: Location, address: String, power: Int) {
-    val name = name
-    val timestamp = timestamp
-    val position = position
-    val address = address
-    val power = power
-
+open class Device(var name: String?, val timestamp: Long, val position: Location, val address: String?, val power: Int) {
     fun basicCsv(): String {
         return "$timestamp,${position.getLatitude()},${position.getLongitude()},${position.getAltitude()},$name,$address,$power"
     }

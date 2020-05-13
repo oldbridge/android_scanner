@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
                     intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, 0)
                 // add the name and the MAC address of the object to the arrayAdapter
                 //result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
-                db?.addBTDevice(Device(device.name, scan_time, current_location, device.address, device_rssi.toInt()))
+                db?.addBTDevice(Device(device?.getName(), scan_time, current_location, device?.getAddress(), device_rssi.toInt()))
             }
         }
     }
@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun start_wifi_scan() {
         val results = wifiManager?.getScanResults() as List<ScanResult>
-        var console = findViewById(R.id.textView) as TextView
+        var console = findViewById<TextView>(R.id.textView)
         var prevres = console.text as String
         for (r in results) {
             db?.addWifiDevice(WifiDevice(r.SSID, scan_time, current_location, r.BSSID, r.level, r.frequency, r.channelWidth, r.capabilities))

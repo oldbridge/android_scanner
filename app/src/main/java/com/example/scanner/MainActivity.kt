@@ -198,55 +198,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun save_results() {
         var fileWriter = FileWriter(get_log_file(), false)
-        // Write headers
-        fileWriter.write("type,timestamp,latitude,longitude,altitude,name,address,power,linked,cell_type,frequency_wifi,channel_width_wifi,capabilities_wifi\n")
-        var write_string = ""
         val cursor = db?.getAllData()
 
-        cursor!!.moveToFirst()
-        while (!cursor.isAfterLast()) {
-            var location = Location("dummyprovider")
-            location.setLatitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_LAT)))
-            location.setLongitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_LONG)))
-            location.setAltitude(cursor.getDouble(cursor.getColumnIndex(DeviceDatabase.COLUMN_POS_HEIGHT)))
-            if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_BT) {
-                // Is BT Device
-                val device = Device(
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
-                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
-                    location,
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER))
-                )
-                write_string = device.toCsv()
-            } else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_WIFI) {
-                // Is WIFI Device
-                val device = WifiDevice(
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
-                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
-                    location,
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_FREQUENCY)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_CHANNEL_WIDTH)),
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_CAPABILITIES))
-                )
-                write_string = device.toCsv()
-            } else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_CELL) {
-                val device = CellDevice(
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
-                    cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
-                    location,
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_INUSE)),
-                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_CELL_TYPE))
-                )
-                write_string = device.toCsv()
-            }
-
-            fileWriter.write(write_string + "\n")
-            cursor.moveToNext()
+        //cursor!!.moveToFirst()
+        val headers = cursor?.getColumnNames() as Array<String>
+        var header_row = ""
+        for (h in headers) header_row = "$header_row$h,"
+        fileWriter.write("$header_row\n")
+        while (cursor.moveToNext()) {
+            //Which column you want to exprort
+            var row_csv = ""
+            for (column in headers.indices)  row_csv = "$row_csv${cursor.getString(column)},"
+            fileWriter.write("$row_csv\n")
         }
         fileWriter.flush()
         fileWriter.close()

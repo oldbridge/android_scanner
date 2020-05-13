@@ -65,7 +65,7 @@
             android:id="@+id/textView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Output" />
+            android:text="No position..." />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -85,7 +85,7 @@
                         android:id="@+id/textViewGNSS"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="TextView GNSS" />
+                        android:text="Information output" />
                 </LinearLayout>
             </ScrollView>
 

@@ -93,9 +93,6 @@ class MainActivity : AppCompatActivity() {
         //locationManager?.registerGnssStatusCallback(gnss_callbacks)
         start_positioning()
 
-        // Save start_time
-        val start_time = System.currentTimeMillis() / 1000
-
         // Get the default adapter
         init_bt()
         init_wifi()
@@ -157,9 +154,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun perform_scan() {
         scan_time = System.currentTimeMillis() / 1000
-        get_cell_updates()
         start_bt_scan()
+        get_cell_updates()
         start_wifi_scan()
+
+        // Also update the GUI with current or previous results and time indicators
+        findViewById<TextView>(R.id.textViewGNSS).setText(db?.getCount_str())
     }
 
     private fun get_log_file(): File {

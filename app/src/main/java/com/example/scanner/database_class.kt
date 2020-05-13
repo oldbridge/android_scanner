@@ -111,6 +111,21 @@ class DeviceDatabase(
         db.close()
     }
 
+    fun getCount_str(): String {
+        val db = this.readableDatabase
+        val n_cells = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type == \"$TYPE_CELL\"", null).getCount()
+        val n_bt = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type == \"$TYPE_BT\"", null).getCount()
+        val n_wifi = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type ==\"$TYPE_WIFI\"", null).getCount()
+        val last_time_c = db.rawQuery("SELECT DISTINCT $COLUMN_TIMESTAMP FROM $TABLE_NAME ORDER BY $COLUMN_ID DESC LIMIT 1;", null)
+        last_time_c.moveToFirst()
+        val last_time = last_time_c.getLong(last_time_c.getColumnIndex(COLUMN_TIMESTAMP))
+        val last_time_str = java.time.format.DateTimeFormatter.ISO_INSTANT
+            .format(java.time.Instant.ofEpochSecond(last_time))
+        db.close()
+        return "Last time: $last_time_str\nCell-stations: $n_cells, Bluetooth: $n_bt, WIFI: $n_wifi"
+
+    }
+
     fun getAllData(): Cursor? {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM $TABLE_NAME", null)

@@ -83,8 +83,6 @@ class MainActivity : AppCompatActivity() {
         // Setup db
         db = DeviceDatabase(this, null, getExternalFilesDir(null).toString())
 
-        //val name = save_data()
-
         // Create telephony manager reference
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 

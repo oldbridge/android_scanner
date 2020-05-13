@@ -15,10 +15,8 @@ class SniffedData():
         self.filename = filename
         headers = ['type', 'lat', 'long', 'height', 'timestamp', 'name', 
                    'address', 'power', 'freq', 'bw', 'characteristics']
-        self.data = pd.read_csv(filename, header=None, names=headers)
-        self.log_time = datetime.fromtimestamp(int(self.filename.split("_")[1].split(".")[0]))
+        self.data = pd.read_csv(filename)
         self.data['timestamp'] = pd.to_datetime(self.data['timestamp'], unit='s')
-        self.data['instant'] = (self.data['lat'], self.data['long'], self.data['height'], self.data['timestamp'])
         self.unique_macs = self.data['address'].unique()
     
     def plot_locations(self, ax):
@@ -44,14 +42,11 @@ class SniffedData():
         ax.set_title(f"Presence of {name}")
         
 if __name__ == '__main__':
-    filename = "log_1589224751.csv"
+    filename = "dump.csv"
     
     data = SniffedData(filename)
-    seek_mac = "00:00:00:00:00:00"
-    unique_macs = data.unique_macs
     
-    for seek_mac in unique_macs[:5]:
-        data.plot_mac(seek_mac)
+    
         
         
             

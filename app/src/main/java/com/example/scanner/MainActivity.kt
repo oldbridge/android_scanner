@@ -15,9 +15,9 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.PowerManager
 import android.telephony.*
 import android.widget.Button
-import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private var scan_delay: Long = 4000
     private var db: DeviceDatabase? =null
     private var storage_path: String? =null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     // Initialize the broadcast receiver
     val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -101,6 +102,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.buttonStore).setOnClickListener { save_results() }
         findViewById<SeekBar>(R.id.scanfrequencyBar).setOnSeekBarChangeListener(rate_changed)
 
+        // Setup wakelock
+        val mgr: PowerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock =  mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "app:MyWakeLock")
         // Setup scan rate indicators
         findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(scan_delay.toInt() / 1000)
     }
@@ -118,10 +122,6 @@ class MainActivity : AppCompatActivity() {
         override fun onStopTrackingTouch(seekBar: SeekBar?) {
 
         }
-    }
-
-    private fun stop_scan() {
-        stop = true
     }
 
     private fun init_bt() {
@@ -147,7 +147,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun start_scan() {
         stop = false
+        wakeLock?.acquire()
+
         handler.post(periodicScans)
+    }
+
+    private fun stop_scan() {
+        wakeLock?.release()
+        stop = true
     }
 
     private fun perform_scan() {
@@ -237,7 +244,8 @@ class MainActivity : AppCompatActivity() {
         requestPermissions(
             arrayOf(
                 ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION,
-                WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE
+                WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE,
+                WAKE_LOCK
             ), 0
         )
     }

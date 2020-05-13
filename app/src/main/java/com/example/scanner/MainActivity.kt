@@ -34,8 +34,8 @@ class MainActivity : AppCompatActivity() {
     private var current_location = Location("dummyprovider")
     private var stop: Boolean = false
     private var scan_delay: Long = 4000
-    private var db: DeviceDatabase? =null
-    private var storage_path: String? =null
+    private var db: DeviceDatabase? = null
+    private var storage_path: String? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     // Initialize the broadcast receiver
@@ -57,7 +57,15 @@ class MainActivity : AppCompatActivity() {
                     intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, 0)
                 // add the name and the MAC address of the object to the arrayAdapter
                 //result_db.add_bt("${current_location.print()},$scan_time,${device.name},${device.address},$device_rssi")
-                db?.addBTDevice(Device(device?.getName(), scan_time, current_location, device?.getAddress(), device_rssi.toInt()))
+                db?.addBTDevice(
+                    Device(
+                        device?.getName(),
+                        scan_time,
+                        current_location,
+                        device?.getAddress(),
+                        device_rssi.toInt()
+                    )
+                )
             }
         }
     }
@@ -104,7 +112,7 @@ class MainActivity : AppCompatActivity() {
 
         // Setup wakelock
         val mgr: PowerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock =  mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "app:MyWakeLock")
+        wakeLock = mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "app:MyWakeLock")
         // Setup scan rate indicators
         findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(scan_delay.toInt() / 1000)
     }
@@ -140,7 +148,18 @@ class MainActivity : AppCompatActivity() {
         var console = findViewById<TextView>(R.id.textView)
         var prevres = console.text as String
         for (r in results) {
-            db?.addWifiDevice(WifiDevice(r.SSID, scan_time, current_location, r.BSSID, r.level, r.frequency, r.channelWidth, r.capabilities))
+            db?.addWifiDevice(
+                WifiDevice(
+                    r.SSID,
+                    scan_time,
+                    current_location,
+                    r.BSSID,
+                    r.level,
+                    r.frequency,
+                    r.channelWidth,
+                    r.capabilities
+                )
+            )
             prevres += "${r.SSID} ${r.BSSID} ${r.frequency} ${r.level} dBm\n"
         }
     }
@@ -180,7 +199,7 @@ class MainActivity : AppCompatActivity() {
     private fun save_results() {
         var fileWriter = FileWriter(get_log_file(), false)
         // Write headers
-        fileWriter.write("type,timestamp,latitude,longitude,altitude,name,address,power,linked,frequency_wifi,channel_width_wifi,capabilities_wifi\n")
+        fileWriter.write("type,timestamp,latitude,longitude,altitude,name,address,power,linked,cell_type,frequency_wifi,channel_width_wifi,capabilities_wifi\n")
         var write_string = ""
         val cursor = db?.getAllData()
 
@@ -200,8 +219,7 @@ class MainActivity : AppCompatActivity() {
                     cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER))
                 )
                 write_string = device.toCsv()
-            }
-            else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_WIFI) {
+            } else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_WIFI) {
                 // Is WIFI Device
                 val device = WifiDevice(
                     cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
@@ -214,20 +232,20 @@ class MainActivity : AppCompatActivity() {
                     cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_CAPABILITIES))
                 )
                 write_string = device.toCsv()
-            }
-            else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_CELL) {
+            } else if (cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_TYPE)) == DeviceDatabase.TYPE_CELL) {
                 val device = CellDevice(
                     cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_NAME)),
                     cursor.getLong(cursor.getColumnIndex(DeviceDatabase.COLUMN_TIMESTAMP)),
                     location,
                     cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_ADDRESS)),
                     cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_POWER)),
-                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_INUSE))
+                    cursor.getInt(cursor.getColumnIndex(DeviceDatabase.COLUMN_INUSE)),
+                    cursor.getString(cursor.getColumnIndex(DeviceDatabase.COLUMN_CELL_TYPE))
                 )
                 write_string = device.toCsv()
             }
 
-            fileWriter.write(write_string+"\n")
+            fileWriter.write(write_string + "\n")
             cursor.moveToNext()
         }
         fileWriter.flush()
@@ -312,21 +330,100 @@ class MainActivity : AppCompatActivity() {
     fun get_cell_updates() {
         val cells = telephonyManager?.getAllCellInfo() as List<CellInfo>
         for (cell in cells) {
+            println(cell.toString())
             if (cell is CellInfoLte) {
                 val cell_id = cell.cellIdentity
-                println("Got a LTE cell")
-                println(cell.toString())
-                db?.addCellDevice(CellDevice(
-                    cell_id.operatorAlphaLong.toString(),
-                    scan_time, current_location, "${cell_id.getPci()}_${cell_id.getEarfcn()}",
-                    cell.cellSignalStrength.rsrp, (if (cell.isRegistered()) 1 else 0))
-                )
+                if (cell.isRegistered()) {
+                    println("Got a LTE cell (registered)")
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getMccString()}_${cell_id.getMncString()}_${cell_id.getTac()}_${cell_id.getCi()}_${cell_id.getEarfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            1,
+                            "LTE"
+                        )
+                    )
+                }
+                else {
+                    println("Got a LTE cell (not registered)")
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getPci()}_${cell_id.getEarfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            0,
+                            "LTE"
+                        )
+                    )
+                }
             } else if (cell is CellInfoGsm) {
-                println("Got a GSM cell")
+                val cell_id = cell.cellIdentity
+                if (cell.isRegistered()) {  // Only registered cells seem to contain MCC, MNC, CID and LAT info
+                    println("Got a GSM cell (registered)")
+
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getMccString()}_${cell_id.getMncString()}_${cell_id.getLac()}_${cell_id.getCid()}_${cell_id.getArfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            1,
+                            "GSM"
+                        )
+                    )
+                } else {
+                    println("Got a GSM cell (not registered)")
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getCid()}_${cell_id.getArfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            0,
+                            "GSM"
+                        )
+                    )
+                }
+
             } else if (cell is CellInfoWcdma) {
-                println("Got a WCDMA cell")
+                val cell_id = cell.cellIdentity
+                if (cell.isRegistered()) {  // Only registered cells seem to contain MCC, MNC, CID and LAT info
+                    println("Got a WCDMA cell (registered)")
+
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getMccString()}_${cell_id.getMncString()}_${cell_id.getLac()}_${cell_id.getCid()}_${cell_id.getUarfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            1,
+                            "WCDMA"
+                        )
+                    )
+                } else {
+                    println("Got a WCDMA cell (not registered)")
+                    db?.addCellDevice(
+                        CellDevice(
+                            cell_id.operatorAlphaLong.toString(),
+                            scan_time,
+                            current_location,
+                            "${cell_id.getCid()}_${cell_id.getPsc()}_${cell_id.getUarfcn()}",
+                            cell.cellSignalStrength.getDbm(),
+                            0,
+                            "WCDMA"
+                        )
+                    )
+                }
             } else if (cell is CellInfoCdma) {
-                println("Got a CDMA cell")
+                println("Got a CDMA cell") // CDMA just used in America, left out of implementation
             }
             // TDSCDMA is implemented first from API 29 on (left out)
         }

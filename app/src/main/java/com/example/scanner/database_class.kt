@@ -16,10 +16,9 @@ open class Device(var name: String?, val timestamp: Long, val position: Location
     }
 }
 
-class CellDevice(name: String, timestamp: Long, position: Location, address: String, power: Int, inUse: Int):Device(name, timestamp, position, address, power) {
-    val inUse = inUse
+class CellDevice(name: String, timestamp: Long, position: Location, address: String, power: Int, val inUse: Int, val type: String):Device(name, timestamp, position, address, power) {
     override fun toCsv(): String {
-        return "CELL,${basicCsv()},$inUse"
+        return "CELL,${basicCsv()},$inUse,$type"
     }
 }
 
@@ -29,7 +28,7 @@ class WifiDevice(name: String, timestamp: Long, position: Location, address: Str
     val capabilities = capabilities
 
     override fun toCsv(): String {
-        return "WIFI,${basicCsv()},0,$frequency,$channel_width,$capabilities"
+        return "WIFI,${basicCsv()},0,WIFI,$frequency,$channel_width,$capabilities"
     }
 }
 
@@ -58,7 +57,8 @@ class DeviceDatabase(
                 COLUMN_CAPABILITIES + " TEXT," +
                 COLUMN_CHANNEL_WIDTH + " INTEGER," +
                 COLUMN_FREQUENCY + " INTEGER," +
-                COLUMN_INUSE + " INTEGER" +
+                COLUMN_INUSE + " INTEGER," +
+                COLUMN_CELL_TYPE + " TEXT" +
                 ")")
         db.execSQL(CREATE_TABLE)
     }
@@ -93,6 +93,7 @@ class DeviceDatabase(
         values.put(COLUMN_TYPE, TYPE_CELL)
         add_basics(values, device)
         values.put(COLUMN_INUSE, device.inUse)
+        values.put(COLUMN_CELL_TYPE, device.type)
         val db = this.writableDatabase
         db.insert(TABLE_NAME, null, values)
         db.close()
@@ -132,7 +133,7 @@ class DeviceDatabase(
     }
 
     companion object {
-        private val DATABASE_VERSION = 8
+        private val DATABASE_VERSION = 9
         val TABLE_NAME = "devices"
         val COLUMN_ID = "_id"
         val COLUMN_NAME = "name"
@@ -147,6 +148,7 @@ class DeviceDatabase(
         val COLUMN_FREQUENCY = "frequency"
         val COLUMN_CHANNEL_WIDTH = "channel_width"
         val COLUMN_TYPE = "type"
+        val COLUMN_CELL_TYPE = "cell_type"
         val TYPE_BT = "BT"
         val TYPE_WIFI = "WIFI"
         val TYPE_CELL = "CELL"

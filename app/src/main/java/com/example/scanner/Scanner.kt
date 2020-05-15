@@ -18,7 +18,6 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
-import android.os.PowerManager
 import android.telephony.*
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -41,10 +40,9 @@ class Scanner() {
     private var stop: Boolean = false
     var scan_delay: Long = 4000
     private var db: DeviceDatabase? = null
-    private var wakeLock: PowerManager.WakeLock? = null
 
     // Initialize the broadcast receiver
-    val bReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+    val bReceiver: BroadcastReceiver = object :     BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             val action = intent.action
             // When discovery finds a device
@@ -102,10 +100,6 @@ class Scanner() {
         init_bt()
         init_wifi()
 
-        // Setup wakelock
-        val mgr: PowerManager = context?.getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "app:MyWakeLock")
-
     }
     private fun init_bt() {
         val turnOnIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -121,19 +115,18 @@ class Scanner() {
 
     fun start_scan() {
         stop = false
-        wakeLock?.acquire()
 
         handler.post(periodicScans)
     }
 
     fun stop_scan() {
-        wakeLock?.release()
         stop = true
         stop_positioning()
     }
 
     private fun perform_scan() {
         scan_time = System.currentTimeMillis() / 1000
+        println(scan_time)
         start_bt_scan()
         get_cell_updates()
         start_wifi_scan()

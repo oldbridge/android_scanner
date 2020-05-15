@@ -334,16 +334,13 @@ class Scanner() {
 }
 
 class ScannerService : Service() {
-    private var startMode: Int = 0             // indicates how to behave if the service is killed
-    private var binder: IBinder? = null        // interface for clients that bind
-    private var allowRebind: Boolean = false   // indicates whether onRebind should be used
     private var mScanner: Scanner? = null
     private val CHANNEL_ID = "ForegroundService Kotlin"
 
     companion object {
-        fun startService(context: Context, message: String) {
+        fun startService(context: Context, scan_delay: Long) {
             val startIntent = Intent(context, ScannerService::class.java)
-            startIntent.putExtra("inputExtra", message)
+            startIntent.putExtra("inputExtra", scan_delay)
             ContextCompat.startForegroundService(context, startIntent)
         }
         fun stopService(context: Context) {
@@ -361,7 +358,7 @@ class ScannerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         //do heavy work on a background thread
-        val input = intent?.getStringExtra("inputExtra")
+        val scan_delay = intent?.getLongExtra("inputExtra", 4000L)
         createNotificationChannel()
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -369,12 +366,16 @@ class ScannerService : Service() {
             0, notificationIntent, 0
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Foreground Service Kotlin Example")
-            .setContentText(input)
+            .setContentTitle("Scanning BT + WIFi + CELL...")
+            .setContentText("Scanning with ${scan_delay!! / 1000} s rate")
             .setSmallIcon(android.R.drawable.ic_dialog_alert    )
             .setContentIntent(pendingIntent)
             .build()
         startForeground(1, notification)
+        mScanner = Scanner()
+        mScanner?.initialize_all(applicationContext)
+        mScanner?.scan_delay = scan_delay!!
+        mScanner?.start_scan()
         //stopSelf();
         return(START_NOT_STICKY)
     }
@@ -386,5 +387,7 @@ class ScannerService : Service() {
 
     override fun onDestroy() {
         // The service is no longer used and is being destroyed
+        println("Stopping service")
+        mScanner?.stop_scan()
     }
 }

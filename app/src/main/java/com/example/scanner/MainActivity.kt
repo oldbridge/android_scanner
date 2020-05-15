@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             arrayOf(
                 ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION,
                 WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, READ_PHONE_STATE,
-                WAKE_LOCK
+                WAKE_LOCK, ACCESS_BACKGROUND_LOCATION
             ), 0
         )
     }

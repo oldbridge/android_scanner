@@ -137,6 +137,7 @@ class Scanner() {
 
     private fun start_wifi_scan() {
         val results = wifiManager?.getScanResults() as List<ScanResult>
+        println("Wifi Results ${results.size}")
         for (r in results) {
             println(r.toString())
             db?.addWifiDevice(

@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import java.io.File
+import java.io.FileWriter
 
 class MainActivity : AppCompatActivity() {
     var scan_delay = 4000L
@@ -22,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         // Setup click listeners
         findViewById<Button>(R.id.buttonStart).setOnClickListener { start_scan() }
         findViewById<Button>(R.id.buttonStop).setOnClickListener { stop_scan() }
-        //findViewById<Button>(R.id.buttonStore).setOnClickListener { mScanner.save_results() }
+        findViewById<Button>(R.id.buttonStore).setOnClickListener { save_results() }
         findViewById<SeekBar>(R.id.scanfrequencyBar).setOnSeekBarChangeListener(rate_changed)
 
         // Setup scan rate indicators
@@ -62,4 +64,25 @@ class MainActivity : AppCompatActivity() {
             ), 0
         )
     }
+
+    fun save_results() {
+        val db = DeviceDatabase(applicationContext, null, applicationContext.getExternalFilesDir(null).toString())
+        var fileWriter = FileWriter(File(applicationContext.getExternalFilesDir(null), "dump.csv"), false)
+        val cursor = db.getAllData()
+
+        //cursor!!.moveToFirst()
+        val headers = cursor?.getColumnNames() as Array<String>
+        var header_row = ""
+        for (h in headers) header_row = "$header_row$h,"
+        fileWriter.write("$header_row\n")
+        while (cursor.moveToNext()) {
+            //Which column you want to exprort
+            var row_csv = ""
+            for (column in headers.indices)  row_csv = "$row_csv${cursor.getString(column)},"
+            fileWriter.write("$row_csv\n")
+        }
+        fileWriter.flush()
+        fileWriter.close()
+    }
+
 }

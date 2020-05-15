@@ -262,30 +262,6 @@ class Scanner() {
         }
     }
 
-    private fun get_log_file(): File {
-        println()
-        return File(context?.getExternalFilesDir(null), "dump.csv")
-    }
-
-    fun save_results() {
-        var fileWriter = FileWriter(get_log_file(), false)
-        val cursor = db?.getAllData()
-
-        //cursor!!.moveToFirst()
-        val headers = cursor?.getColumnNames() as Array<String>
-        var header_row = ""
-        for (h in headers) header_row = "$header_row$h,"
-        fileWriter.write("$header_row\n")
-        while (cursor.moveToNext()) {
-            //Which column you want to exprort
-            var row_csv = ""
-            for (column in headers.indices)  row_csv = "$row_csv${cursor.getString(column)},"
-            fileWriter.write("$row_csv\n")
-        }
-        fileWriter.flush()
-        fileWriter.close()
-    }
-
     // Implement locationListener callbacks
     private val locationListener: LocationListener = object : LocationListener {
 

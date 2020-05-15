@@ -1,14 +1,15 @@
 package com.example.scanner
 
 import android.Manifest.permission.*
-import android.location.GnssStatus
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+
 class MainActivity : AppCompatActivity() {
-    val mScanner = Scanner()
+    var scan_delay = 4000L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,22 +18,21 @@ class MainActivity : AppCompatActivity() {
         getPermissions()
 
         // Initialize the scanner class instance
-        mScanner.initialize_all(getApplicationContext(), findViewById(R.id.consoleTextView), findViewById(R.id.positionTextView))
 
         // Setup click listeners
-        findViewById<Button>(R.id.buttonStart).setOnClickListener { mScanner.start_scan() }
-        findViewById<Button>(R.id.buttonStop).setOnClickListener { mScanner.stop_scan() }
-        findViewById<Button>(R.id.buttonStore).setOnClickListener { mScanner.save_results() }
+        findViewById<Button>(R.id.buttonStart).setOnClickListener { start_scan() }
+        findViewById<Button>(R.id.buttonStop).setOnClickListener { stop_scan() }
+        //findViewById<Button>(R.id.buttonStore).setOnClickListener { mScanner.save_results() }
         findViewById<SeekBar>(R.id.scanfrequencyBar).setOnSeekBarChangeListener(rate_changed)
 
         // Setup scan rate indicators
-        findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(mScanner.scan_delay.toInt() / 1000)
+        findViewById<SeekBar>(R.id.scanfrequencyBar).setProgress(scan_delay.toInt() / 1000)
 
     }
 
     var rate_changed: SeekBar.OnSeekBarChangeListener = object : SeekBar.OnSeekBarChangeListener {
         override fun onProgressChanged(seekBar: SeekBar, progress: Int, b: Boolean) {
-            mScanner.scan_delay = progress.toLong() * 1000
+            scan_delay = progress.toLong() * 1000
             findViewById<TextView>(R.id.scanfreq).setText(progress.toString() + " s")
         }
 
@@ -45,6 +45,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun start_scan() {
+        ScannerService.startService(this, scan_delay)
+    }
+
+    private fun stop_scan() {
+        ScannerService.stopService(this)
+    }
     private fun getPermissions() {
         // Get permission from user
         requestPermissions(

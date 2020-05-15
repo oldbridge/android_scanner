@@ -1,5 +1,9 @@
 package com.example.scanner
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -13,19 +17,20 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.PowerManager
 import android.telephony.*
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.startActivityForResult
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileWriter
 
 class Scanner() {
     // inside a basic activity
     private var context: Context? = null
-    private var consoleTextView: TextView? = null
-    private var positionTextView: TextView? = null
 
     private var locationManager: LocationManager? = null
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -78,11 +83,9 @@ class Scanner() {
         }
     }
 
-    fun initialize_all(pass_context: Context, consoleTextView_p: TextView, positionTextView_p: TextView) {
+    fun initialize_all(pass_context: Context) {
         // Initialize context
         context = pass_context
-        consoleTextView = consoleTextView_p
-        positionTextView = positionTextView_p
 
         // Setup db
         db = DeviceDatabase(context!!, null, context?.getExternalFilesDir(null).toString())
@@ -136,7 +139,7 @@ class Scanner() {
         start_wifi_scan()
 
         // Also update the GUI with current or previous results and time indicators
-        consoleTextView?.setText(db?.getCount_str())
+        //consoleTextView?.setText(db?.getCount_str())
     }
 
     private fun start_wifi_scan() {
@@ -293,7 +296,8 @@ class Scanner() {
     private val locationListener: LocationListener = object : LocationListener {
 
         private fun setText(value: String) {
-            positionTextView?.setText(value)
+            println(value)
+            //positionTextView?.setText(value)
         }
 
         override fun onLocationChanged(location: Location?) {
@@ -326,5 +330,61 @@ class Scanner() {
             0f,
             locationListener
         )
+    }
+}
+
+class ScannerService : Service() {
+    private var startMode: Int = 0             // indicates how to behave if the service is killed
+    private var binder: IBinder? = null        // interface for clients that bind
+    private var allowRebind: Boolean = false   // indicates whether onRebind should be used
+    private var mScanner: Scanner? = null
+    private val CHANNEL_ID = "ForegroundService Kotlin"
+
+    companion object {
+        fun startService(context: Context, message: String) {
+            val startIntent = Intent(context, ScannerService::class.java)
+            startIntent.putExtra("inputExtra", message)
+            ContextCompat.startForegroundService(context, startIntent)
+        }
+        fun stopService(context: Context) {
+            val stopIntent = Intent(context, ScannerService::class.java)
+            context.stopService(stopIntent)
+        }
+    }
+
+    private fun createNotificationChannel() {
+            val serviceChannel = NotificationChannel(CHANNEL_ID, "Foreground Service Channel",
+                NotificationManager.IMPORTANCE_DEFAULT)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager!!.createNotificationChannel(serviceChannel)
+        }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        //do heavy work on a background thread
+        val input = intent?.getStringExtra("inputExtra")
+        createNotificationChannel()
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0, notificationIntent, 0
+        )
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Foreground Service Kotlin Example")
+            .setContentText(input)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert    )
+            .setContentIntent(pendingIntent)
+            .build()
+        startForeground(1, notification)
+        //stopSelf();
+        return(START_NOT_STICKY)
+    }
+
+    override fun onBind(intent: Intent): IBinder? {
+        // A client is binding to the service with bindService()
+        return null
+    }
+
+    override fun onDestroy() {
+        // The service is no longer used and is being destroyed
     }
 }

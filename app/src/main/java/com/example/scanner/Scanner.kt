@@ -109,6 +109,7 @@ class Scanner() {
         if (bluetoothAdapter.isEnabled() == false) {
             context?.startActivity(turnOnIntent)
         }
+        context?.registerReceiver(bReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
     }
 
     private fun init_wifi() {
@@ -159,7 +160,6 @@ class Scanner() {
 
     private fun start_bt_scan() {
         bluetoothAdapter.startDiscovery()
-        context?.registerReceiver(bReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
     }
 
 

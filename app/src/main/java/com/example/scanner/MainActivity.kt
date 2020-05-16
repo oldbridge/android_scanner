@@ -3,6 +3,7 @@ package com.example.scanner
 import android.Manifest.permission.*
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
@@ -12,6 +13,20 @@ import java.io.FileWriter
 
 class MainActivity : AppCompatActivity() {
     var scan_delay = 4000L
+    var stop = false
+    val ui_handler = Handler()
+    var session_start: Long = 0
+
+    // Create the Handler for updates of UI
+    val update_ui: Runnable = object : Runnable {
+        override fun run() {
+            // Repeat this the same runnable code block again another 2 seconds
+            // 'this' is referencing the Runnable object
+            update_ui()
+            if (!stop) ui_handler.postDelayed(this, scan_delay)
+            else stop = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,10 +63,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun start_scan() {
-        ScannerService.startService(this, scan_delay)
+        stop = false
+        session_start = System.currentTimeMillis() / 1000
+        ui_handler.post(update_ui)
+        ScannerService.startService(this, scan_delay, session_start)
+    }
+
+    private fun update_ui() {
+        val db = DeviceDatabase(applicationContext, null, applicationContext.getExternalFilesDir(null).toString(), session_start)
+        findViewById<TextView>(R.id.consoleTextView).setText(db.getCount_str())
+        findViewById<TextView>(R.id.positionTextView).setText(db.getLastPos_str())
     }
 
     private fun stop_scan() {
+        stop = true
         ScannerService.stopService(this)
     }
     private fun getPermissions() {
@@ -66,7 +91,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun save_results() {
-        val db = DeviceDatabase(applicationContext, null, applicationContext.getExternalFilesDir(null).toString())
+        val db = DeviceDatabase(applicationContext, null, applicationContext.getExternalFilesDir(null).toString(), 0)
         var fileWriter = FileWriter(File(applicationContext.getExternalFilesDir(null), "dump.csv"), false)
         val cursor = db.getAllData()
 
@@ -83,6 +108,7 @@ class MainActivity : AppCompatActivity() {
         }
         fileWriter.flush()
         fileWriter.close()
+        db.close()
     }
 
 }

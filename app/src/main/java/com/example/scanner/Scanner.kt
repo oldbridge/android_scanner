@@ -81,12 +81,12 @@ class Scanner() {
         }
     }
 
-    fun initialize_all(pass_context: Context) {
+    fun initialize_all(pass_context: Context, start_time: Long) {
         // Initialize context
         context = pass_context
 
         // Setup db
-        db = DeviceDatabase(context!!, null, context?.getExternalFilesDir(null).toString())
+        db = DeviceDatabase(context!!, null, context?.getExternalFilesDir(null).toString(), start_time)
 
         // Create telephony manager reference
         telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -308,9 +308,10 @@ class ScannerService : Service() {
     private val CHANNEL_ID = "ForegroundService Kotlin"
 
     companion object {
-        fun startService(context: Context, scan_delay: Long) {
+        fun startService(context: Context, scan_delay: Long, start_time: Long) {
             val startIntent = Intent(context, ScannerService::class.java)
-            startIntent.putExtra("inputExtra", scan_delay)
+            startIntent.putExtra("scan_delay_extra", scan_delay)
+            startIntent.putExtra("start_time_extra", start_time)
             ContextCompat.startForegroundService(context, startIntent)
         }
         fun stopService(context: Context) {
@@ -328,7 +329,8 @@ class ScannerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         //do heavy work on a background thread
-        val scan_delay = intent?.getLongExtra("inputExtra", 4000L)
+        val scan_delay = intent?.getLongExtra("scan_delay_extra", 4000L)
+        val start_time = intent?.getLongExtra("start_time_extra", 0L)
         createNotificationChannel()
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -338,12 +340,12 @@ class ScannerService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Scanning BT + WIFi + CELL...")
             .setContentText("Scanning with ${scan_delay!! / 1000} s rate")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert    )
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentIntent(pendingIntent)
             .build()
         startForeground(1, notification)
         mScanner = Scanner()
-        mScanner?.initialize_all(applicationContext)
+        mScanner?.initialize_all(applicationContext, start_time!!)
         mScanner?.scan_delay = scan_delay!!
         mScanner?.start_scan()
         //stopSelf();

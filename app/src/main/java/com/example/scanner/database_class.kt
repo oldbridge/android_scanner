@@ -35,7 +35,8 @@ class WifiDevice(name: String, timestamp: Long, position: Location, address: Str
 class DeviceDatabase(
     context: Context,
     factory: SQLiteDatabase.CursorFactory?,
-    storage_path: String
+    storage_path: String,
+    val session_start: Long
 ) :
     SQLiteOpenHelper(
         context, storage_path + "/devices.db3",
@@ -112,19 +113,36 @@ class DeviceDatabase(
         db.close()
     }
 
+    private fun get_new_request(db: SQLiteDatabase, type_column: String) : Int{
+        return db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE $COLUMN_TYPE == \"$type_column\" AND $COLUMN_TIMESTAMP > $session_start EXCEPT SELECT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE $COLUMN_TYPE == \"$type_column\" and $COLUMN_TIMESTAMP < $session_start", null).getCount()
+    }
     fun getCount_str(): String {
         val db = this.readableDatabase
-        val n_cells = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type == \"$TYPE_CELL\"", null).getCount()
-        val n_bt = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type == \"$TYPE_BT\"", null).getCount()
-        val n_wifi = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE type ==\"$TYPE_WIFI\"", null).getCount()
+        // Get total count from dB
+        val n_cells = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE $COLUMN_TYPE == \"$TYPE_CELL\"", null).getCount()
+        val n_bt = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE $COLUMN_TYPE == \"$TYPE_BT\"", null).getCount()
+        val n_wifi = db.rawQuery("SELECT DISTINCT $COLUMN_ADDRESS FROM $TABLE_NAME WHERE $COLUMN_TYPE ==\"$TYPE_WIFI\"", null).getCount()
+
+        // Get count of new ones
+        val n_new_cells = get_new_request(db, TYPE_CELL)
+        val n_new_bt = get_new_request(db, TYPE_BT)
+        val n_new_wifi = get_new_request(db, TYPE_WIFI)
+
         val last_time_c = db.rawQuery("SELECT DISTINCT $COLUMN_TIMESTAMP FROM $TABLE_NAME ORDER BY $COLUMN_ID DESC LIMIT 1;", null)
         last_time_c.moveToFirst()
         val last_time = last_time_c.getLong(last_time_c.getColumnIndex(COLUMN_TIMESTAMP))
         val last_time_str = java.time.format.DateTimeFormatter.ISO_INSTANT
             .format(java.time.Instant.ofEpochSecond(last_time))
         db.close()
-        return "Last time: $last_time_str\nCell-stations: $n_cells, Bluetooth: $n_bt, WIFI: $n_wifi"
+        return "Last time: $last_time_str\nCell-stations: $n_cells, Bluetooth: $n_bt, WIFI: $n_wifi\n New cells: $n_new_cells, New BT: $n_new_bt, New WIFI: $n_new_wifi"
 
+    }
+
+    fun getLastPos_str(): String {
+        val db = this.readableDatabase
+        var c = db.rawQuery("SELECT $COLUMN_POS_LAT,$COLUMN_POS_LONG,$COLUMN_POS_HEIGHT FROM $TABLE_NAME ORDER BY $COLUMN_ID DESC LIMIT 1", null) as Cursor
+        c.moveToFirst()
+        return "Last position: ${"%.4f".format(c.getDouble(0))} / ${"%.4f".format(c.getDouble(1))} / ${"%.1f".format(c.getDouble(2))}"
     }
 
     fun getAllData(): Cursor? {
